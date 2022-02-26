@@ -1,0 +1,7 @@
+.shadow-cljs/
+.lsp/
+.clj-kondo/
+node_modules/
+.calva/
+.cpcache/
+public/js/
