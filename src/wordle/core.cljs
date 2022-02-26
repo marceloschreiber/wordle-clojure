@@ -1,9 +1,10 @@
-(ns wordle.core)
+(ns wordle.core
+  (:require [wordle.words :refer [words]]))
 
 (def board-state (atom []))
 (def counter (atom 0))
 (def attempt (atom 0))
-(def word-of-the-day (atom "hello"))
+(def word-of-the-day (atom (rand-nth (seq words))))
 
 (defn write-letter [cell letter]
   (set! (.-textContent cell) letter))
@@ -51,10 +52,9 @@
            (> @counter start)) (do (swap! counter dec)
                                    (write-letter (nth @board-state @counter) ""))
       (and (= key "enter")
-           (zero? (mod @counter 5))) (do
-                                       (when (check-solution (subvec @board-state start end))
-                                         (js/alert "You won"))
-                                       (swap! attempt inc)))))
+           (zero? (mod @counter 5))) (when-not (check-solution (subvec @board-state start end))
+                                       (when-not (= 5 @attempt)
+                                         (swap! attempt inc))))))
 
 (defonce listener (atom nil))
 
