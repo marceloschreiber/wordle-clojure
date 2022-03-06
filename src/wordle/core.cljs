@@ -47,7 +47,12 @@
         :miss (add-class cell "miss")))))
 
 (defn color-keyboard-keys! [letters difference]
-  (let [add-class (fn [el class] (set! (.-className el) (str "keyboard-key" " " class)))
+  (let [add-class (fn [el class]
+                    (when-not (.contains (.-classList el) "exact")
+                      (cond
+                        (and (.contains (.-classList el) "misplaced") (= class "exact")) (.replace (.-classList el) "misplaced" "exact")
+                        (and (not (.contains (.-classList el) "misplaced")) (= class "misplaced")) (.replace (.-classList el) "idle" "misplaced")
+                        :else (.replace (.-classList el) "idle" class))))
         get-keyboard-key (fn [idx letters]
                            (get @keyboard-state (nth letters idx)))]
     (doseq [[idx difference] (map-indexed vector difference)]
