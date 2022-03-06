@@ -5,3 +5,5 @@ node_modules/
 .calva/
 .cpcache/
 public/js/
+out/*
+!/out/main.js

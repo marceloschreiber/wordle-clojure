@@ -1,5 +1,6 @@
 (ns wordle.core
-  (:require [wordle.words :refer [words]]))
+  (:require [wordle.words :refer [words]]
+            [wordle.solver :refer [check-words-difference]]))
 
 (def board-state (atom []))
 (def counter (atom 0))
@@ -36,33 +37,6 @@
         :misplaced (add-class cell "misplaced")
         :miss (add-class cell "miss")))))
 
-(defn letters-in-right-place
-  "Returns a vector containing :miss or :exact for each letter position"
-  [guess solution]
-  (->> (map-indexed (fn [idx _]
-                      (cond
-                        (= (nth guess idx) (nth solution idx)) :exact
-                        :else :miss))
-                    guess)
-       (apply vector)))
-
-(defn set-misplaced-letters!
-  "Return a vector containing :misplaced for the letters that are misplaced"
-  [guess solution result]
-  (let [guess-atom (atom @result)]
-    (doseq [i (range (count @result))]
-      (when-not (= :exact (nth @result i))
-        (doseq [j (range (count solution))]
-          (when (and (not= :misplaced (nth @result j)) (not= :exact (nth @result j)) (not= :misplaced (nth @guess-atom i)) (= (nth guess i) (nth solution j)))
-            (swap! guess-atom assoc i :misplaced)
-            (swap! result assoc j :misplaced)))))
-    @guess-atom))
-
-(defn check-words-difference
-  [guess solution]
-  (let [result (atom (letters-in-right-place guess solution))]
-    (set-misplaced-letters! guess solution result)))
-
 (defn check-solution [cells]
   (let [difference (check-words-difference (mapv get-letter cells) (vec @word-of-the-day))]
     (color-cells! cells difference)
@@ -97,13 +71,14 @@
         board (make-board 30)
         input-listener (fn [e]
                          (user-input (.toLowerCase (.-key e))))]
+    (set! (.-innerHTML app) "")
     (.appendChild app board)
     (reset! listener input-listener)
     (js/document.addEventListener
      "keydown"
      input-listener)))
 
-(mount)
+(set! js/window.onload mount)
 
 
 (comment
