@@ -2,6 +2,11 @@
   (:require [wordle.words :refer [words]]
             [wordle.solver :refer [check-words-difference]]))
 
+(def row-1 '("q" "w" "e" "r" "t" "y" "u" "i" "o" "p"))
+(def row-2 '("a" "s" "d" "f" "g" "h" "j" "k" "l"))
+(def row-3 '("enter" "z" "x" "c" "v" "b" "n" "m" "del"))
+
+(def keyboard-state (atom {}))
 (def board-state (atom []))
 (def counter (atom 0))
 (def attempt (atom 0))
@@ -18,13 +23,17 @@
     cell))
 
 (defn make-board [n]
-  (let [board (js/document.createElement "div")]
+  (let [board-container (js/document.createElement "div")
+        board (js/document.createElement "div")]
+    (set! (.-className board-container) "board-container")
     (set! (.-className board) "board")
+    (.appendChild board-container board)
     (doseq [_ (range n)]
       (let [cell (make-cell)]
         (swap! board-state conj cell)
         (.appendChild board cell)))
-    board))
+
+    board-container))
 
 (defn get-letter [cell]
   (.-textContent cell))
@@ -37,9 +46,21 @@
         :misplaced (add-class cell "misplaced")
         :miss (add-class cell "miss")))))
 
+(defn color-keyboard-keys! [letters difference]
+  (let [add-class (fn [el class] (set! (.-className el) (str "keyboard-key" " " class)))
+        get-keyboard-key (fn [idx letters]
+                           (get @keyboard-state (nth letters idx)))]
+    (doseq [[idx difference] (map-indexed vector difference)]
+      (condp = difference
+        :exact (add-class (get-keyboard-key idx letters) "exact")
+        :misplaced (add-class (get-keyboard-key idx letters) "misplaced")
+        :miss (add-class (get-keyboard-key idx letters) "miss")))))
+
 (defn check-solution [cells]
-  (let [difference (check-words-difference (mapv get-letter cells) (vec @word-of-the-day))]
+  (let [letters (mapv get-letter cells)
+        difference (check-words-difference letters (vec @word-of-the-day))]
     (color-cells! cells difference)
+    (color-keyboard-keys! letters difference)
     (every? #(= :exact %) difference)))
 
 (defonce listener (atom nil))
@@ -61,6 +82,36 @@
                                          (js/document.removeEventListener "keydown" @listener)
                                          (swap! attempt inc))))))
 
+(defn make-keyboard-key [key]
+  (let [cell (js/document.createElement "div")
+        input-listener (fn []
+                         (user-input (.toLowerCase (cond
+                                                     (= key "del") "backspace"
+                                                     :else key))))]
+    (set! (.-className cell) "keyboard-key idle")
+    (set! (.-textContent cell) key)
+    (.addEventListener cell
+                       "click"
+                       input-listener)
+    (swap! keyboard-state into [[key cell]])
+    cell))
+
+(defn make-keyboard-row [row]
+  (let [row-element (js/document.createElement "div")]
+    (set! (.-className row-element) "row")
+    (doseq [key row]
+      (let [key-element (make-keyboard-key key)]
+        (.appendChild row-element key-element)))
+    row-element))
+
+(defn make-keyboard [& rows]
+  (let [keyboard-element (js/document.createElement "div")]
+    (set! (.-className keyboard-element) "keyboard")
+    (doseq [row rows]
+      (let [row-element (make-keyboard-row row)]
+        (.appendChild keyboard-element row-element)))
+    keyboard-element))
+
 (defn ^:dev/before-load unmount []
   (js/document.removeEventListener "keydown" @listener)
   (let [app (js/document.getElementById "app")]
@@ -69,15 +120,18 @@
 (defn mount []
   (let [app (js/document.getElementById "app")
         board (make-board 30)
+        keyboard (make-keyboard row-1 row-2 row-3)
         input-listener (fn [e]
                          (user-input (.toLowerCase (.-key e))))]
     (set! (.-innerHTML app) "")
     (.appendChild app board)
+    (.appendChild app keyboard)
     (reset! listener input-listener)
     (js/document.addEventListener
      "keydown"
      input-listener)))
 
+;(mount)
 (set! js/window.onload mount)
 
 
