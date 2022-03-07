@@ -98,7 +98,7 @@
     (.addEventListener cell
                        "click"
                        input-listener)
-    (swap! keyboard-state into [[key cell]])
+    (swap! keyboard-state assoc key cell)
     cell))
 
 (defn make-keyboard-row [row]

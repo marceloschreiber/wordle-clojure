@@ -1,9 +1,8 @@
 {:deps {:aliases [:dev]}
- :dev-http {8000 "public"}
+ :dev-http {8000 "./"}
  :builds
  {:main {:target :browser
-         :output-dir "public/js"
-         :asset-path "/js"
+         :output-dir "out"
          :module-hash-names true
          :modules {:main {:entries [wordle.core]}}
          :build-hooks [(shadow.cljs.build-report/hook)]}}}
